@@ -1,0 +1,25 @@
+blacklist:
+  - app-emulation/containerd
+  - dev-java/oracle-jdk-bin
+  - mail-mta/postfix
+  - app-antivirus/clamav
+  - app-backup/bacula
+  - sys-libs/glibc 
+  - dev-lang/python
+  - dev-lang/ruby 
+  - dev-lang/php
+  - app-emulation/xen
+  - app-emulation/xen-tools
+  - dev-db/postgresql 
+  - net-proxy/haproxy
+  - www-servers/apache
+  - dev-db/mysql
+  - net-misc/rabbitmq-server
+  - dev-db/mongodb
+  - dev-lang/erlang
+  - net-fs/samba
+  - www-servers/varnish
+  - app-emulation/docker
+run_after:
+  - /usr/local/bin/11_portage_dump_update_list.sh
+

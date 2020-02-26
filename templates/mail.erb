@@ -1,0 +1,32 @@
+Update report:
+
+All updates to be done: <%= before_run_updates.all.count %>
+
+Updates to be done without those which are blacklisted: <%= before_run_updates.without_blacklisted.count %>
+Updates remaining after run (without blacklisted) <%= after_run_updates.without_blacklisted.count %>
+
+<% if services_status[:to_restart].count > 0 %>
+Processes status after upgrade:
+  - processes to restart: <%= services_status[:to_restart].count %>
+  - processes restarted:
+<% services_status[:restarted].each do |process| %>
+    <%= process %>
+<% end %>
+  - unknown processes:
+<% services_status[:unknown].each do |process| %>
+    <%= process %>
+<% end %>
+<% end %>
+
+<% if after_run_updates.without_blacklisted.length > 0 %>
+There are still updates to do which is strange, please take a look at what's left:
+<%  after_run_updates.without_blacklisted.each do |update| %>
+<%= update %>
+<% end %>
+<% end %>
+
+<% if eselect_news.length > 0 %>
+There are some news from gentoo, please read them carrefully:
+<%= eselect_news %>
+<% end %>
+
