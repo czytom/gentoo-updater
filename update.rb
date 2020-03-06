@@ -4,15 +4,9 @@ require 'yaml'
 require 'pony'
 require "open3"
 require 'erb'
+require_relative "config.rb"
 require_relative "services.rb"
-class Config
-  attr_reader :config
-  include Singleton
-  def initialize
-    config_file = './config.yml'
-    @config = YAML::load_file(config_file)
-  end
-end
+require_relative "packages.rb"
 
 class Updates
 
@@ -21,7 +15,7 @@ class Updates
   end
 
   def do_update_pretend_without_blacklist_cmd 
-    do_update_pretend_base_cmd + ' --exclude ' + blacklisted.join(' --exclude ')
+    do_update_pretend_base_cmd + ' --exclude ' + Packages.blacklisted.join(' --exclude ')
   end
 
   def do_update_base_cmd
@@ -29,46 +23,44 @@ class Updates
   end
 
   def do_update_without_blacklist_cmd 
-    do_update_base_cmd + ' --exclude ' + blacklisted.join(' --exclude ')
+    do_update_base_cmd + ' --exclude ' + Packages.blacklisted.join(' --exclude ')
   end
 
   def all
     if @all.nil?
       stdout, stderr, status = Open3.capture3(do_update_pretend_base_cmd)
-      @all = parse_update_output(stdout)
+      @all = Packages.from_array(Updates.parse_update_output(stdout))
     end
     return @all
   end
 
-  def config
-    Config.instance.config
-  end
-
-  def blacklisted
-    config['blacklist']
-  end
-  
   def without_blacklisted
     if @without_blacklisted.nil?
       stdout, stderr, status = Open3.capture3(do_update_pretend_without_blacklist_cmd)
-      @without_blacklisted = parse_update_output(stdout)
+      @without_blacklisted = Packages.from_array(Updates.parse_update_output(stdout))
     end
     return @without_blacklisted
   end
 
-  def parse_update_output(output)
-    updates = []
-    output.split("\n").grep(/^\[ebuild/).each do |update|
-      updates << update
-    end
+  def skipped
+    all - without_blacklisted
+  end
+
+  def self.parse_update_output(output)
+    output.split("\n").grep(/^\[ebuild/).map {|update| update}
   end
 end
 
 #save_pretend_before - for global reporting and analyzing
 
 before_run_updates = Updates.new
-
 puts "All updates to do: #{before_run_updates.all.count}, updates to do in this run (without blacklisted): #{before_run_updates.without_blacklisted.count}"
+puts "All updates:"
+before_run_updates.all.each {|package| puts package.name_version_with_slot}
+puts "\nUpdates to be done:"
+before_run_updates.without_blacklisted.each {|package| puts package.name_version_with_slot}
+puts "\nSkipped updates:"
+before_run_updates.skipped.each {|package| puts "#{package.name_version_with_slot}"}
 
 
 if before_run_updates.without_blacklisted.count > 0
@@ -90,7 +82,7 @@ renderer = ERB.new(File.read('./templates/mail.erb'))
 mail_body = renderer.result()
 
 puts "Run after all updates are done"
-after_run_updates.config['run_after'].each do |cmd|
+Config.instance.config['run_after'].each do |cmd|
   `#{cmd}`
 end
 
